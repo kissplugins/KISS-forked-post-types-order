@@ -5,6 +5,34 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.9.1] - 2025-01-11
+
+### Added
+- **ACF Fields Integration**: Added support for displaying Advanced Custom Fields in the post ordering interface
+- **Sub-Headline Display**: Automatic detection and display of ACF sub-headline fields including:
+  - Sub Headline
+  - Sub Headline (Shorter)
+  - Sub Headline (Longer)
+- **Smart Field Truncation**: Long ACF field values are automatically truncated with ellipsis for clean display
+- **Hover Tooltips**: Full ACF field values shown on hover for truncated content
+
+### Enhanced
+- **Interface Layout**: Improved post item layout to better accommodate ACF field display
+- **Visual Hierarchy**: Clear separation between post title and ACF field information
+- **Responsive Design**: ACF fields display cleanly without disrupting drag-and-drop functionality
+
+### Technical Implementation
+- **Filter Integration**: Uses existing `pto/interface_item_data` filter for seamless integration
+- **Conditional Loading**: ACF fields only display when ACF plugin is active
+- **Customizable Fields**: Developers can modify displayed fields using `pto/acf_fields` filter
+- **Performance Optimized**: Efficient field retrieval without impacting interface performance
+- **Status**: Successfully implemented and tested - function hooks properly into interface walker
+
+### Styling
+- **Professional Appearance**: Clean, subtle styling for ACF field display
+- **Consistent Design**: Matches existing plugin design language
+- **Accessibility**: Proper contrast and readable typography for ACF content
+
 ## [2.9.0] - 2025-01-11
 
 ### Added

@@ -51,7 +51,10 @@
                     $quick_edit_arrow = $edit_link ? ' <a href="' . esc_url($edit_link) . '" target="_blank" class="pto-quick-edit" title="' . esc_attr__('Edit post in new tab', 'post-types-order') . '">→</a>' : '';
 
                     $output .= $indent . '<li id="item_' . $object->ID . '">
-                                                <span>' . $item_title . ' ' . $item_details . $status_indicator . $quick_edit_arrow . '</span>';
+                                                <div class="pto-item-content">
+                                                    <span class="pto-item-title">' . $item_title . $status_indicator . $quick_edit_arrow . '</span>
+                                                    ' . $item_details . '
+                                                </div>';
 
                     if ( $options['edit_view_links']    ===  1 )
                         $output .=  '<span class="options ui-sortable-handle"><a href="' . get_edit_post_link( $object ) .'"><span class="dashicons dashicons-edit"></span></a></span>';
