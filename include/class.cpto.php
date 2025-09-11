@@ -33,23 +33,77 @@
             
             /**
             * Initialisation function
-            *     
+            *
             */
             function init()
                 {
-                    
+
                     add_action( 'admin_init',                               array ( $this, 'admin_init'), 10 );
                     add_action( 'admin_menu',                               array ( $this, 'add_menu') );
-                    
+
                     add_action( 'admin_menu',                               array ( $this, 'plugin_options_menu'));
-                    
+
                     //load archive drag&drop sorting dependencies
                     add_action( 'admin_enqueue_scripts',                    array ( $this, 'archiveDragDrop'), 10 );
-                    
+
                     add_action( 'wp_ajax_update-custom-type-order',         array ( $this, 'saveAjaxOrder') );
                     add_action( 'wp_ajax_update-custom-type-order-archive', array ( $this, 'saveArchiveAjaxOrder') );
                     add_action( 'wp_ajax_pto_filter_posts_by_category',     array ( $this, 'filterPostsByCategory') );
-                
+
+                }
+
+            /**
+            * Get supported post statuses including Coming Soon
+            *
+            * @return array Array of supported post statuses
+            */
+            function get_supported_post_statuses()
+                {
+                    $statuses = array('publish', 'pending', 'draft', 'private', 'future', 'inherit');
+
+                    // Add coming_soon status if it exists (either from plugin or custom implementation)
+                    if ( $this->is_coming_soon_status_available() ) {
+                        $statuses[] = 'coming_soon';
+                    }
+
+                    return apply_filters( 'pto/supported_post_statuses', $statuses );
+                }
+
+            /**
+            * Check if Coming Soon post status is available
+            *
+            * @return bool True if coming_soon status is available
+            */
+            function is_coming_soon_status_available()
+                {
+                    // Check if Coming Soon plugin is active
+                    if ( class_exists( 'CSPS_Coming_Soon_Post_Status' ) ) {
+                        return true;
+                    }
+
+                    // Check if coming_soon status is registered by any other plugin
+                    $post_statuses = get_post_stati();
+                    return isset( $post_statuses['coming_soon'] );
+                }
+
+            /**
+            * Get Coming Soon label from plugin or default
+            *
+            * @return string Coming Soon label
+            */
+            function get_coming_soon_label()
+                {
+                    $default_label = __( 'Coming Soon', 'post-types-order' );
+
+                    // Try to get label from Coming Soon plugin
+                    if ( class_exists( 'CSPS_Coming_Soon_Post_Status' ) ) {
+                        $instance = CSPS_Coming_Soon_Post_Status::get_instance();
+                        if ( method_exists( $instance, 'get_coming_soon_label' ) ) {
+                            return $instance->get_coming_soon_label();
+                        }
+                    }
+
+                    return apply_filters( 'pto/coming_soon_label', $default_label );
                 }
 
             
@@ -804,9 +858,12 @@
                     }
                     
                     //retrieve a list of all objects
-                    $mysql_query    =   $wpdb->prepare("SELECT ID FROM ". $wpdb->posts ." 
-                                                            WHERE post_type = %s AND post_status IN ('publish', 'pending', 'draft', 'private', 'future', 'inherit')
-                                                            ORDER BY menu_order, post_date DESC", $post_type);
+                    $supported_statuses = $this->get_supported_post_statuses();
+                    $status_placeholders = implode(',', array_fill(0, count($supported_statuses), '%s'));
+                    $mysql_query    =   $wpdb->prepare("SELECT ID FROM ". $wpdb->posts ."
+                                                            WHERE post_type = %s AND post_status IN ($status_placeholders)
+                                                            ORDER BY menu_order, post_date DESC",
+                                                            array_merge(array($post_type), $supported_statuses));
                     $results        =   $wpdb->get_results($mysql_query);
                     
                     if (!is_array($results)    ||  count($results)    <   1)
@@ -971,7 +1028,7 @@
                         'post_type' => $post_type,
                         'posts_per_page' => $posts_per_page,
                         'paged' => $paged,
-                        'post_status' => 'any',
+                        'post_status' => $this->get_supported_post_statuses(),
                         'orderby' => array(
                             'menu_order' => 'ASC',
                             'post_date' => 'DESC'

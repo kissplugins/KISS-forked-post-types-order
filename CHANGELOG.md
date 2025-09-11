@@ -5,6 +5,31 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.9.0] - 2025-01-11
+
+### Added
+- **Coming Soon Post Status Support**: Added full integration for "KISS Coming Soon" post status in the draggable interface
+- **Visual Status Indicators**: Coming Soon posts now display with distinctive orange badges in the post ordering interface
+- **Plugin Integration**: Automatic detection and integration with KISS Coming Soon Post Status plugin
+- **Flexible Status Handling**: Support for custom Coming Soon implementations beyond the specific plugin
+
+### Enhanced
+- **Post Status Queries**: Updated all database queries to include 'coming_soon' status alongside existing statuses
+- **Interface Display**: Enhanced walker class to detect and visually distinguish Coming Soon posts
+- **Helper Methods**: Added centralized methods for Coming Soon status detection and label retrieval
+- **CSS Styling**: Added professional styling for Coming Soon status badges with orange color scheme
+
+### Technical Implementation
+- **Dynamic Status Detection**: Automatically detects if Coming Soon status is available via plugin or custom implementation
+- **Fallback Handling**: Graceful fallback when Coming Soon plugin is not active
+- **Consistent Integration**: Uses plugin's custom labels when available, falls back to default "Coming Soon" text
+- **Performance Optimized**: Efficient status checking without impacting existing functionality
+
+### Compatibility
+- **CSPS Plugin**: Full integration with CSPS Coming Soon Post Status plugin constants and methods
+- **Custom Implementations**: Support for any custom Coming Soon status implementations
+- **Backward Compatible**: No breaking changes to existing functionality
+
 ## [2.8.9] - 2025-01-04
 
 ### Fixed

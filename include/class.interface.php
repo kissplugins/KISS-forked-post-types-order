@@ -82,7 +82,7 @@
                         LEFT JOIN {$wpdb->term_relationships} tr ON tt.term_taxonomy_id = tr.term_taxonomy_id
                         LEFT JOIN {$wpdb->posts} p ON tr.object_id = p.ID
                             AND p.post_type = %s
-                            AND p.post_status IN ('publish', 'pending', 'draft', 'private', 'future', 'inherit')
+                            AND p.post_status IN ('publish', 'pending', 'draft', 'private', 'future', 'inherit', 'coming_soon')
                         WHERE tt.taxonomy = %s
                             AND tt.term_id IN ({$term_ids_sql})
                         GROUP BY tt.term_id
@@ -507,12 +507,16 @@
 
                     // Query pages with pagination
                     $r['hierarchical'] = 0;
+                    // Get supported post statuses from CPTO class
+                    global $CPTO;
+                    $supported_statuses = $CPTO ? $CPTO->get_supported_post_statuses() : array('publish', 'pending', 'draft', 'private', 'future', 'inherit');
+
                     $args = array(
                                 'sort_column'       =>  'menu_order',
                                 'post_type'         =>  $post_type,
                                 'posts_per_page'    => $posts_per_page,
                                 'paged'             => $current_page,
-                                'post_status'       =>  'any',
+                                'post_status'       =>  $supported_statuses,
                                 'orderby'            => array(
                                                             'menu_order'    => 'ASC',
                                                             'post_date'     =>  'DESC'
