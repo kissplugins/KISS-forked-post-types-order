@@ -127,62 +127,65 @@
             */
             function add_acf_fields_to_interface( $item_details, $post )
                 {
-                    // Debug: Log function call
-                    error_log( 'ACF Integration: Function called for post ID ' . $post->ID );
-
-                    // Visual debug - add to item details temporarily
-                    $debug_info = '<div style="background: yellow; padding: 2px; font-size: 10px;">ACF Debug: Called for post ' . $post->ID . '</div>';
-
-                    // Check if ACF is active
+                    // If ACF isn't active, bail gracefully
                     if ( ! function_exists( 'get_field' ) ) {
-                        error_log( 'ACF Integration: get_field function not found - ACF not active' );
-                        return $item_details . '<div style="background: red; color: white; padding: 2px; font-size: 10px;">ACF not active</div>';
+                        return $item_details;
                     }
 
-                    error_log( 'ACF Integration: ACF is active, proceeding with field retrieval' );
-                    $debug_info .= '<div style="background: green; color: white; padding: 2px; font-size: 10px;">ACF is active</div>';
+                    // Which fields to show: key = ACF field name, value = label (default to field name)
+                    $fields = apply_filters( 'pto/acf_fields', array(
+                        'post_sub_headline'        => 'post_sub_headline',
+                        'post_short_sub_headline'  => 'post_short_sub_headline',
+                        'post_longer_sub_headline' => 'post_longer_sub_headline',
+                    ) );
+
+                    // Attempt to load group once for fallback (common pattern: group field named 'post_settings')
+                    $group_data = get_field( 'post_settings', $post->ID );
+                    if ( ! is_array( $group_data ) ) {
+                        $group_data = array();
+                    }
 
                     $acf_fields = array();
 
-                    // Define the ACF field names to display (based on user selection)
-                    $field_names = apply_filters( 'pto/acf_fields', array(
-                        'post_sub_headline' => __( 'Post Sub Headline', 'post-types-order' ),
-                        'post_short_sub_headline' => __( 'Post Short Sub Headline', 'post-types-order' ),
-                        'post_longer_sub_headline' => __( 'Post Longer Sub Headline', 'post-types-order' )
-                    ) );
+                    foreach ( $fields as $key => $label ) {
+                        // Allow numeric array where value is the field key
+                        if ( is_int( $key ) ) {
+                            $key   = $label;
+                            $label = $key;
+                        }
 
-                    // Debug: Let's see what fields are actually available for this post
-                    $all_fields = get_fields( $post->ID );
-                    $debug_info .= '<div style="background: purple; color: white; padding: 2px; font-size: 10px;">Available fields: ' .
-                                  ( $all_fields ? implode( ', ', array_keys( $all_fields ) ) : 'none' ) . '</div>';
+                        // 1) Direct field
+                        $value = get_field( $key, $post->ID );
 
-                    // Get ACF field values
-                    foreach ( $field_names as $field_key => $field_label ) {
-                        $field_value = get_field( $field_key, $post->ID );
-                        error_log( 'ACF Integration: Field ' . $field_key . ' for post ' . $post->ID . ' = ' . var_export( $field_value, true ) );
+                        // 2) Fallback to group sub-field
+                        if ( ( $value === null || $value === '' ) && isset( $group_data[ $key ] ) ) {
+                            $value = $group_data[ $key ];
+                        }
 
-                        // Check if field has a value (not null, not false, not empty string)
-                        if ( ! empty( $field_value ) && is_string( $field_value ) && trim( $field_value ) !== '' ) {
-                            // Truncate long values for display
-                            $display_value = strlen( $field_value ) > 50 ? substr( $field_value, 0, 47 ) . '...' : $field_value;
-                            $acf_fields[] = '<span class="pto-acf-field" title="' . esc_attr( $field_label . ': ' . $field_value ) . '">' .
-                                          '<strong>' . esc_html( $field_label ) . ':</strong> ' . esc_html( $display_value ) . '</span>';
-                            error_log( 'ACF Integration: Added field ' . $field_key . ' to display' );
+                        // 3) Final fallback to meta with group prefix (post_settings_<key>)
+                        if ( $value === null || $value === '' ) {
+                            $maybe = get_post_meta( $post->ID, 'post_settings_' . $key, true );
+                            if ( $maybe !== '' ) {
+                                $value = $maybe;
+                            }
+                        }
+
+                        if ( is_string( $value ) ) {
+                            $value = trim( $value );
+                        }
+
+                        if ( $value !== null && $value !== '' ) {
+                            $raw_for_title = is_scalar( $value ) ? (string) $value : wp_json_encode( $value );
+                            $display_value = is_string( $value ) && strlen( $value ) > 80 ? substr( $value, 0, 77 ) . '...' : $value;
+                            $acf_fields[]  = '<span class="pto-acf-field" title="' . esc_attr( $label . ': ' . $raw_for_title ) . '"><strong>' . esc_html( $label ) . ':</strong> ' . esc_html( is_scalar( $display_value ) ? (string) $display_value : '' ) . '</span>';
                         }
                     }
 
-                    // Add ACF fields to item details if any exist
                     if ( ! empty( $acf_fields ) ) {
-                        $acf_display = '<div class="pto-acf-fields" style="margin-top: 5px; font-size: 11px; color: #666;">' . implode( '<br>', $acf_fields ) . '</div>';
-                        $item_details .= $acf_display;
-                        error_log( 'ACF Integration: Added ACF fields to item details for post ' . $post->ID );
-                        $debug_info .= '<div style="background: blue; color: white; padding: 2px; font-size: 10px;">Found ' . count( $acf_fields ) . ' ACF fields</div>';
-                    } else {
-                        error_log( 'ACF Integration: No ACF fields found for post ' . $post->ID );
-                        $debug_info .= '<div style="background: orange; padding: 2px; font-size: 10px;">No ACF fields found</div>';
+                        $item_details .= '<div class="pto-acf-fields">' . implode( '<br>', $acf_fields ) . '</div>';
                     }
 
-                    return $item_details . $debug_info;
+                    return $item_details;
                 }
 
             

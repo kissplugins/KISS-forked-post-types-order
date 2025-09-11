@@ -5,6 +5,22 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.9.2] - 2025-09-11
+
+### Added
+- Output ACF field names and values directly on draggable post rows:
+  - post_sub_headline
+  - post_short_sub_headline
+  - post_longer_sub_headline
+
+### Improved
+- Robust retrieval for Group fields: if sub-headlines live under a `post_settings` group, values are pulled from the group automatically with safe meta fallbacks
+- Cleaned up previous debug visuals; interface now shows concise field badges only
+
+### Developer Notes
+- Displayed labels default to the ACF field names for clarity; can be customized via `pto/acf_fields` filter
+- No changes to existing labels elsewhere; minimal, focused update
+
 ## [2.9.1] - 2025-01-11
 
 ### Added
