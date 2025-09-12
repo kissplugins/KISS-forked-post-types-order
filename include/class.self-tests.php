@@ -320,6 +320,12 @@
                                 </div>
                             </h3>
                             <div class="test-description"><?php echo esc_html($test['description']); ?></div>
+                            <?php if ($test_id === 'orderby_live_query') : ?>
+                            <div class="test-helper" style="font-size:12px;color:#646970;margin-top:6px;">
+                                <?php _e('Note: In admin with Admin Sort disabled or with Autosort disabled, this test may show “Indeterminate”. To get a definite PASS, run from a frontend context where Autosort is enabled, or temporarily enable Admin Sort in the plugin settings.', 'post-types-order'); ?>
+                            </div>
+                            <?php endif; ?>
+
                             <div class="test-result" style="display: none;"></div>
                         </div>
                         <?php
@@ -356,6 +362,11 @@
                             'name' => __('Sorting & Filtering Integrity Test', 'post-types-order'),
                             'description' => __('Verifies core hook registrations for ordering/filtering (pre_get_posts, posts_orderby) and related AJAX actions.', 'post-types-order'),
                             'critical' => true
+                        ),
+                        'orderby_live_query' => array(
+                            'name' => __('Live Query Order Test', 'post-types-order'),
+                            'description' => __('Runs a lightweight query and inspects final ORDER BY to confirm menu_order influence when applicable.', 'post-types-order'),
+                            'critical' => false
                         )
                     );
                 }
@@ -473,6 +484,10 @@
 
                             case 'sorting_filtering_integrity':
                                 $result = $this->test_sorting_filtering_integrity();
+                                break;
+
+                            case 'orderby_live_query':
+                                $result = $this->test_orderby_live_query();
                                 break;
 
                             default:
@@ -907,6 +922,16 @@
                             'details' => 'pagination_info property not found in PTO_Interface'
                         );
 
+                        }
+                        $checks[] = "\xE2\x9C\x93 Pagination info property exists";
+
+                        return array(
+                            'success' => true,
+                            'message' => __('Pagination performance test passed', 'post-types-order'),
+                            'details' => implode("\n", $checks)
+                        );
+                    }
+
                 /**
                  * Test 5: Sorting & Filtering Integrity
                  *
@@ -1007,15 +1032,104 @@
                         );
                     }
 
-                    }
-                    $checks[] = "✓ Pagination info property exists";
+                /**
+                 * Test 6: Live Query Order Test
+                 *
+                 * Attempts a lightweight WP_Query and inspects the final ORDER BY clause
+                 * to confirm that menu_order is applied. This does not modify content.
+                 *
+                 * Behavior:
+                 * - If menu_order detected in ORDER BY: PASS
+                 * - If running in admin with adminsort disabled: INDETERMINATE (return success=true with note)
+                 * - If autosort disabled: INDETERMINATE (success=true with note)
+                 * - Otherwise: FAIL
+                 *
+                 * @since 2.9.7
+                 */
+                function test_orderby_live_query()
+                    {
+                        $checks = array();
 
-                    return array(
-                        'success' => true,
-                        'message' => __('Pagination performance test passed', 'post-types-order'),
-                        'details' => implode("\n", $checks)
-                    );
-                }
+                        if (!class_exists('WP_Query')) {
+                            return array(
+                                'success' => false,
+                                'message' => __('WP_Query not available', 'post-types-order'),
+                                'details' => ''
+                            );
+                        }
+
+                        global $CPTO;
+                        $options = array();
+                        if ($CPTO && isset($CPTO->functions) && method_exists($CPTO->functions, 'get_options')) {
+                            $options = $CPTO->functions->get_options();
+                        }
+                        $autosort  = isset($options['autosort']) ? strval($options['autosort']) : '';
+                        $adminsort = isset($options['adminsort']) ? strval($options['adminsort']) : '';
+
+                        $captured_orderby = null;
+                        $capture_cb = function($orderby, $q) use (&$captured_orderby) {
+                            $captured_orderby = $orderby;
+                            return $orderby;
+                        };
+                        add_filter('posts_orderby', $capture_cb, 1000, 2);
+
+                        // Lightweight query: IDs only, no_found_rows, small page
+                        $args = array(
+                            'post_type'           => 'post',
+                            'post_status'         => 'publish',
+                            'fields'              => 'ids',
+                            'posts_per_page'      => 2,
+                            'no_found_rows'       => true,
+                            'suppress_filters'    => false,
+                            'ignore_custom_sort'  => false,
+                        );
+
+                        $q = new WP_Query($args);
+                        // Touch results to ensure query executed
+                        $ids = is_array($q->posts) ? count($q->posts) : 0;
+                        $checks[] = 'Queried posts: ' . intval($ids);
+
+                        remove_filter('posts_orderby', $capture_cb, 1000);
+
+                        $is_admin_flag = function_exists('is_admin') ? is_admin() : false;
+                        $has_menu_order = is_string($captured_orderby) && (strpos($captured_orderby, 'menu_order') !== false);
+
+                        $checks[] = 'Captured ORDER BY: ' . var_export($captured_orderby, true);
+                        $checks[] = 'Context flags: is_admin=' . ($is_admin_flag ? '1' : '0') . ', autosort=' . $autosort . ', adminsort=' . $adminsort;
+
+                        if ($has_menu_order) {
+                            return array(
+                                'success' => true,
+                                'message' => __('Detected menu_order in ORDER BY', 'post-types-order'),
+                                'details' => implode("\n", $checks)
+                            );
+                        }
+
+                        // Indeterminate contexts where influence is expected to be off in this environment
+                        if ($is_admin_flag && $adminsort !== '1') {
+                            return array(
+                                'success' => true,
+                                'message' => __('Indeterminate in admin context (adminsort disabled); cannot confirm frontend influence here.', 'post-types-order'),
+                                'details' => implode("\n", $checks)
+                            );
+                        }
+                        if (!$is_admin_flag && $autosort !== '1') {
+                            return array(
+                                'success' => true,
+                                'message' => __('Autosort disabled; frontend influence intentionally off.', 'post-types-order'),
+                                'details' => implode("\n", $checks)
+                            );
+                        }
+
+                        return array(
+                            'success' => false,
+                            'message' => __('Expected menu_order not found in ORDER BY', 'post-types-order'),
+                            'details' => implode("\n", $checks)
+                        );
+                    }
+
+
+
         }
 
 ?>

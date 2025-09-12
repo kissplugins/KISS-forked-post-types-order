@@ -5,6 +5,20 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.9.8] - 2025-09-12
+
+### Added
+- Tiny inline helper note on the Self Tests page under the "Live Query Order Test" explaining why it may show "Indeterminate" in admin and how to get a definite PASS (run on frontend with Autosort enabled or temporarily enable Admin Sort)
+
+## [2.9.7] - 2025-09-12
+
+### Added
+- New Self Test: "Live Query Order Test" to run a lightweight WP_Query and confirm menu_order is present in ORDER BY when applicable
+
+### Notes
+- Test reports indeterminate (passes with a note) when running in admin with adminsort disabled or when autosort is disabled
+
+
 ## [2.9.6] - 2025-09-12
 
 ### Added
