@@ -5,6 +5,24 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.9.6] - 2025-09-12
+
+### Added
+- New Self Test: "Sorting & Filtering Integrity" to validate registration of core hooks (pre_get_posts, posts_orderby) and related AJAX actions
+
+### Notes
+- Helps catch regressions if hook bindings are changed or removed
+
+
+## [2.9.5] - 2025-09-12
+
+### Added
+- Self Tests quick-access link in the Plugins page action links (points to Tools → KISS Re-Order Self Tests)
+
+### Notes
+- No functional changes to tests; navigation convenience only
+
+
 ## [2.9.4] - 2025-09-11
 
 ### Added

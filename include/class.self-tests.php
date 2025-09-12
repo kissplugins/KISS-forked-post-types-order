@@ -1,7 +1,7 @@
 <?php
 
     if ( ! defined( 'ABSPATH' ) ) exit; // Exit if accessed directly
-    
+
     /**
      * KISS Post Types Order Self-Testing System
      *
@@ -57,7 +57,7 @@
                     add_action('admin_menu', array($this, 'add_tools_menu'));
                     add_action('wp_ajax_pto_run_self_test', array($this, 'run_single_test'));
                 }
-                
+
             /**
              * Add self-tests page to WordPress Tools menu
              *
@@ -94,7 +94,7 @@
                         array($this, 'render_tests_page')
                     );
                 }
-                
+
             /**
              * Render the self-tests page interface
              *
@@ -137,12 +137,12 @@
                     ?>
                     <div class="wrap">
                         <h1><?php echo sprintf(__('KISS Re-Order Self Tests - v%s', 'post-types-order'), PTO_VERSION); ?></h1>
-                        
+
                         <div class="notice notice-info">
                             <p><strong><?php _e('About Self Tests:', 'post-types-order'); ?></strong></p>
                             <p><?php _e('These tests help detect regressions and bugs after refactoring. Run them after any code changes to ensure core functionality remains intact.', 'post-types-order'); ?></p>
                         </div>
-                        
+
                         <div class="pto-self-tests">
                             <div class="test-controls" style="margin: 20px 0;">
                                 <button type="button" id="run-all-tests" class="button button-primary"><?php _e('Run All Tests', 'post-types-order'); ?></button>
@@ -157,12 +157,12 @@
                             <div class="test-results" id="test-results">
                                 <!-- Test results will be populated here -->
                             </div>
-                            
+
                             <div class="test-list">
                                 <?php $this->render_test_list(); ?>
                             </div>
                         </div>
-                        
+
                         <style>
                         .pto-self-tests .test-item {
                             border: 1px solid #ddd;
@@ -197,7 +197,7 @@
                         .summary-fail { background: #f8d7da; border-color: #d63638; color: #d63638; }
                         .summary-partial { background: #fff3cd; border-color: #007cba; color: #007cba; }
                         </style>
-                        
+
                         <script type="text/javascript">
                         jQuery(document).ready(function($) {
                             $('#run-all-tests').click(function() {
@@ -251,15 +251,15 @@
                                 $summaryText.text(summaryText);
                                 $summary.show();
                             }
-                            
+
                             function runSingleTest(testId) {
                                 var $testItem = $('.test-item[data-test-id="' + testId + '"]');
                                 var $status = $testItem.find('.test-status');
                                 var $result = $testItem.find('.test-result');
-                                
+
                                 $status.removeClass('status-pending status-pass status-fail').addClass('status-running').text('Running...');
                                 $result.hide();
-                                
+
                                 $.ajax({
                                     url: ajaxurl,
                                     type: 'POST',
@@ -290,7 +290,7 @@
                                     }
                                 });
                             }
-                            
+
                             function clearResults() {
                                 $('.test-status').removeClass('status-running status-pass status-fail').addClass('status-pending').text('Pending');
                                 $('.test-result').hide();
@@ -301,14 +301,14 @@
                     </div>
                     <?php
                 }
-                
+
             /**
             * Render the list of available tests
             */
             function render_test_list()
                 {
                     $tests = $this->get_test_definitions();
-                    
+
                     foreach ($tests as $test_id => $test) {
                         ?>
                         <div class="test-item" data-test-id="<?php echo esc_attr($test_id); ?>">
@@ -325,7 +325,7 @@
                         <?php
                     }
                 }
-                
+
             /**
             * Get test definitions
             */
@@ -350,6 +350,11 @@
                         'pagination_performance' => array(
                             'name' => __('Pagination Performance Test', 'post-types-order'),
                             'description' => __('Ensures pagination limits are working and queries are not unbounded (posts_per_page != -1).', 'post-types-order'),
+                            'critical' => true
+                        ),
+                        'sorting_filtering_integrity' => array(
+                            'name' => __('Sorting & Filtering Integrity Test', 'post-types-order'),
+                            'description' => __('Verifies core hook registrations for ordering/filtering (pre_get_posts, posts_orderby) and related AJAX actions.', 'post-types-order'),
                             'critical' => true
                         )
                     );
@@ -464,6 +469,10 @@
 
                             case 'pagination_performance':
                                 $result = $this->test_pagination_performance();
+                                break;
+
+                            case 'sorting_filtering_integrity':
+                                $result = $this->test_sorting_filtering_integrity();
                                 break;
 
                             default:
@@ -897,6 +906,107 @@
                             'message' => __('Pagination info property missing', 'post-types-order'),
                             'details' => 'pagination_info property not found in PTO_Interface'
                         );
+
+                /**
+                 * Test 5: Sorting & Filtering Integrity
+                 *
+                 * CRITICAL HOOKS VALIDATION – DO NOT REFACTOR UNLESS NECESSARY
+                 *
+                 * Validates registration of core hooks used for ordering/filtering and AJAX:
+                 * - Filters: pre_get_posts, posts_orderby (expected priority 99)
+                 * - AJAX: update-custom-type-order, update-custom-type-order-archive, pto_filter_posts_by_category
+                 *
+                 * @since 2.9.6
+                 * @return array
+                 */
+                function test_sorting_filtering_integrity()
+                    {
+                        $checks = array();
+
+                        // Ensure CPTO is available
+                        if (!class_exists('CPTO')) {
+                            if (file_exists(CPTPATH . '/include/class.cpto.php')) {
+                                include_once(CPTPATH . '/include/class.cpto.php');
+                            }
+                        }
+
+                        global $CPTO;
+                        if (!$CPTO || !is_object($CPTO)) {
+                            return array(
+                                'success' => false,
+                                'message' => __('CPTO instance not initialized', 'post-types-order'),
+                                'details' => 'Global $CPTO not available; core hooks cannot be verified'
+                            );
+                        }
+                        $checks[] = '✓ CPTO instance available';
+
+                        if (!function_exists('has_filter') || !function_exists('has_action')) {
+                            return array(
+                                'success' => false,
+                                'message' => __('WordPress hook APIs not available', 'post-types-order'),
+                                'details' => 'has_filter/has_action functions missing'
+                            );
+                        }
+
+                        // Check filter hooks
+                        $missing_filters = array();
+                        $pre_priority = has_filter('pre_get_posts', array($CPTO, 'pre_get_posts'));
+                        $orderby_priority = has_filter('posts_orderby', array($CPTO, 'posts_orderby'));
+
+                        if ($pre_priority === false) {
+                            $missing_filters[] = 'pre_get_posts::CPTO::pre_get_posts';
+                        } else {
+                            $checks[] = '✓ pre_get_posts registered (priority ' . intval($pre_priority) . ')';
+                        }
+
+                        if ($orderby_priority === false) {
+                            $missing_filters[] = 'posts_orderby::CPTO::posts_orderby';
+                        } else {
+                            $checks[] = '✓ posts_orderby registered (priority ' . intval($orderby_priority) . ')';
+                            if (intval($orderby_priority) !== 99) {
+                                $checks[] = '⚠ posts_orderby priority is ' . intval($orderby_priority) . ', expected 99';
+                            }
+                        }
+
+                        // Check AJAX actions
+                        $missing_ajax = array();
+                        $ajax_map = array(
+                            'wp_ajax_update-custom-type-order' => 'saveAjaxOrder',
+                            'wp_ajax_update-custom-type-order-archive' => 'saveArchiveAjaxOrder',
+                            'wp_ajax_pto_filter_posts_by_category' => 'filterPostsByCategory',
+                        );
+
+                        foreach ($ajax_map as $hook => $method) {
+                            $registered = has_action($hook, array($CPTO, $method));
+                            if ($registered === false) {
+                                $missing_ajax[] = $hook . '::CPTO::' . $method;
+                            } else {
+                                $checks[] = '✓ ' . $hook . ' registered to ' . $method . ' (priority ' . intval($registered) . ')';
+                            }
+                        }
+
+                        if (!empty($missing_filters) || !empty($missing_ajax)) {
+                            $missing = array();
+                            if (!empty($missing_filters)) {
+                                $missing[] = 'Filters: ' . implode(', ', $missing_filters);
+                            }
+                            if (!empty($missing_ajax)) {
+                                $missing[] = 'AJAX: ' . implode(', ', $missing_ajax);
+                            }
+                            return array(
+                                'success' => false,
+                                'message' => __('Missing required hook registrations', 'post-types-order'),
+                                'details' => implode("\n", array_merge($checks, array('Missing => ' . implode(' | ', $missing))))
+                            );
+                        }
+
+                        return array(
+                            'success' => true,
+                            'message' => __('Sorting & filtering integrity test passed', 'post-types-order'),
+                            'details' => implode("\n", $checks)
+                        );
+                    }
+
                     }
                     $checks[] = "✓ Pagination info property exists";
 
