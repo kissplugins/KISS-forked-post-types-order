@@ -6,6 +6,27 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [2.9.8] - 2025-09-12
+## [2.9.11] - 2025-09-12
+
+### Fixed
+- Align ACF labels and values on the same baseline in the reorder UI to remove the 1–2px vertical offset
+
+
+## [2.9.10] - 2025-09-12
+
+### UI
+- ACF inline row styling: labels are now normal weight and values are bold for clearer scannability in the reorder interface
+
+
+## [2.9.9] - 2025-09-12
+
+### Changed
+- Update default labels for ACF sub-headline fields in the reorder UI to match front-end labels:
+  - post_sub_headline → “Sub Headline”
+  - post_short_sub_headline → “Sub Headline (Shorter)”
+  - post_longer_sub_headline → “Sub Headline (Longer)”
+
+
 
 ### Added
 - Tiny inline helper note on the Self Tests page under the "Live Query Order Test" explaining why it may show "Indeterminate" in admin and how to get a definite PASS (run on frontend with Autosort enabled or temporarily enable Admin Sort)

@@ -154,9 +154,9 @@
 
                     // Which fields to show: key = ACF field name, value = label (default to field name)
                     $fields = apply_filters( 'pto/acf_fields', array(
-                        'post_sub_headline'        => 'post_sub_headline',
-                        'post_short_sub_headline'  => 'post_short_sub_headline',
-                        'post_longer_sub_headline' => 'post_longer_sub_headline',
+                        'post_sub_headline'        => 'Sub Headline',
+                        'post_short_sub_headline'  => 'Sub Headline (Shorter)',
+                        'post_longer_sub_headline' => 'Sub Headline (Longer)',
                     ) );
 
                     // Attempt to load group once for fallback (common pattern: group field named 'post_settings')
@@ -199,7 +199,7 @@
 
                         if ( $value !== null && $value !== '' ) {
                             $display_value = is_string( $value ) && strlen( $value ) > 80 ? substr( $value, 0, 77 ) . '...' : $value;
-                            $pairs[] = esc_html( $label ) . ': ' . esc_html( is_scalar( $display_value ) ? (string) $display_value : '' );
+                            $pairs[] = '<span class="pto-acf-label">' . esc_html( $label ) . '</span>: <strong class="pto-acf-value">' . esc_html( is_scalar( $display_value ) ? (string) $display_value : '' ) . '</strong>';
                         }
                     }
 
