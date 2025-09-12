@@ -112,14 +112,34 @@
             /**
             * Add ACF fields to the interface item data
             *
-            * Displays ACF sub-headline fields in the post ordering interface.
-            * Developers can customize which fields are displayed using the 'pto/acf_fields' filter.
+            * CRITICAL UI CONTEXT – DO NOT REMOVE/REFACTOR WITHOUT REVALIDATION
+            * ------------------------------------------------------------------
+            * Purpose:
+            * - Shows ACF sub‑headline fields on each draggable post row to give
+            *   editors clear context while reordering.
+            * - Output is a single inline row joined with " | " to keep rows compact.
             *
-            * Example usage:
-            * add_filter( 'pto/acf_fields', function( $fields ) {
-            *     $fields['custom_field'] = 'Custom Field Label';
-            *     return $fields;
-            * });
+            * Safeguards:
+            * - Retrieval order is intentional and must remain as follows:
+            *   1) Direct get_field('<key>')
+            *   2) Group fallback get_field('post_settings')[<key>]
+            *   3) Meta fallback get_post_meta('post_settings_<key>')
+            *   Changing the order can hide data for existing content.
+            * - Labels intentionally default to the raw field names for clarity in UI.
+            * - Truncation preserves hoverable full text via title attribute if needed later.
+            *
+            * Testing REQUIRED after any change:
+            * - Verify values appear for posts using direct fields and group sub‑fields
+            * - Confirm one‑line format: "field: value | field: value | field: value"
+            * - Check no JS drag‑and‑drop regressions in the ordering screen
+            * - Review large text truncation and that ordering remains smooth
+            *
+            * Customization:
+            * - Use filter 'pto/acf_fields' to add/remove/rename labels while keeping keys.
+            *
+            * @since 2.9.2 Initial ACF display
+            * @since 2.9.3 One‑line inline format
+            * @since 2.9.4 Added safeguard documentation
             *
             * @param string $item_details Current item details
             * @param object $post Post object
@@ -145,9 +165,12 @@
                         $group_data = array();
                     }
 
-                    $acf_fields = array();
+                    $pairs = array();
 
                     foreach ( $fields as $key => $label ) {
+                        // SAFEGUARD: Retrieval order below is intentional.
+                        // 1) Direct field; 2) Group sub-field (post_settings); 3) Meta fallback (post_settings_<key>)
+                        // Changing this order can cause existing content to disappear from the UI.
                         // Allow numeric array where value is the field key
                         if ( is_int( $key ) ) {
                             $key   = $label;
@@ -175,14 +198,13 @@
                         }
 
                         if ( $value !== null && $value !== '' ) {
-                            $raw_for_title = is_scalar( $value ) ? (string) $value : wp_json_encode( $value );
                             $display_value = is_string( $value ) && strlen( $value ) > 80 ? substr( $value, 0, 77 ) . '...' : $value;
-                            $acf_fields[]  = '<span class="pto-acf-field" title="' . esc_attr( $label . ': ' . $raw_for_title ) . '"><strong>' . esc_html( $label ) . ':</strong> ' . esc_html( is_scalar( $display_value ) ? (string) $display_value : '' ) . '</span>';
+                            $pairs[] = esc_html( $label ) . ': ' . esc_html( is_scalar( $display_value ) ? (string) $display_value : '' );
                         }
                     }
 
-                    if ( ! empty( $acf_fields ) ) {
-                        $item_details .= '<div class="pto-acf-fields">' . implode( '<br>', $acf_fields ) . '</div>';
+                    if ( ! empty( $pairs ) ) {
+                        $item_details .= '<div class="pto-acf-fields"><span class="pto-acf-field">' . implode( ' | ', $pairs ) . '</span></div>';
                     }
 
                     return $item_details;

@@ -5,6 +5,29 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.9.4] - 2025-09-11
+
+### Added
+- Protective documentation and inline safeguards around ACF inline output to prevent accidental refactors/removals
+- Clear retrieval-order notes and required post-change test checklist in add_acf_fields_to_interface()
+
+### Notes
+- No functional changes; comments only for developer safety
+- UI remains the same (one-line ACF values)
+
+
+## [2.9.3] - 2025-09-11
+
+### Changed
+- ACF sub-headline values now display in a single inline row on each draggable post item:
+  `post_sub_headline: … | post_short_sub_headline: … | post_longer_sub_headline: …`
+
+### Notes
+- Keeps field names as labels as requested
+- Uses existing `pto/acf_fields` filter for customization
+- Non-intrusive UI; reuses current styles
+
+
 ## [2.9.2] - 2025-09-11
 
 ### Added
