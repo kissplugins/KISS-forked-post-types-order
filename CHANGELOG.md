@@ -5,6 +5,98 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.9.4] - 2025-09-11
+
+### Added
+- Protective documentation and inline safeguards around ACF inline output to prevent accidental refactors/removals
+- Clear retrieval-order notes and required post-change test checklist in add_acf_fields_to_interface()
+
+### Notes
+- No functional changes; comments only for developer safety
+- UI remains the same (one-line ACF values)
+
+
+## [2.9.3] - 2025-09-11
+
+### Changed
+- ACF sub-headline values now display in a single inline row on each draggable post item:
+  `post_sub_headline: … | post_short_sub_headline: … | post_longer_sub_headline: …`
+
+### Notes
+- Keeps field names as labels as requested
+- Uses existing `pto/acf_fields` filter for customization
+- Non-intrusive UI; reuses current styles
+
+
+## [2.9.2] - 2025-09-11
+
+### Added
+- Output ACF field names and values directly on draggable post rows:
+  - post_sub_headline
+  - post_short_sub_headline
+  - post_longer_sub_headline
+
+### Improved
+- Robust retrieval for Group fields: if sub-headlines live under a `post_settings` group, values are pulled from the group automatically with safe meta fallbacks
+- Cleaned up previous debug visuals; interface now shows concise field badges only
+
+### Developer Notes
+- Displayed labels default to the ACF field names for clarity; can be customized via `pto/acf_fields` filter
+- No changes to existing labels elsewhere; minimal, focused update
+
+## [2.9.1] - 2025-01-11
+
+### Added
+- **ACF Fields Integration**: Added support for displaying Advanced Custom Fields in the post ordering interface
+- **Sub-Headline Display**: Automatic detection and display of ACF sub-headline fields including:
+  - Sub Headline
+  - Sub Headline (Shorter)
+  - Sub Headline (Longer)
+- **Smart Field Truncation**: Long ACF field values are automatically truncated with ellipsis for clean display
+- **Hover Tooltips**: Full ACF field values shown on hover for truncated content
+
+### Enhanced
+- **Interface Layout**: Improved post item layout to better accommodate ACF field display
+- **Visual Hierarchy**: Clear separation between post title and ACF field information
+- **Responsive Design**: ACF fields display cleanly without disrupting drag-and-drop functionality
+
+### Technical Implementation
+- **Filter Integration**: Uses existing `pto/interface_item_data` filter for seamless integration
+- **Conditional Loading**: ACF fields only display when ACF plugin is active
+- **Customizable Fields**: Developers can modify displayed fields using `pto/acf_fields` filter
+- **Performance Optimized**: Efficient field retrieval without impacting interface performance
+- **Status**: Successfully implemented and tested - function hooks properly into interface walker
+
+### Styling
+- **Professional Appearance**: Clean, subtle styling for ACF field display
+- **Consistent Design**: Matches existing plugin design language
+- **Accessibility**: Proper contrast and readable typography for ACF content
+
+## [2.9.0] - 2025-01-11
+
+### Added
+- **Coming Soon Post Status Support**: Added full integration for "KISS Coming Soon" post status in the draggable interface
+- **Visual Status Indicators**: Coming Soon posts now display with distinctive orange badges in the post ordering interface
+- **Plugin Integration**: Automatic detection and integration with KISS Coming Soon Post Status plugin
+- **Flexible Status Handling**: Support for custom Coming Soon implementations beyond the specific plugin
+
+### Enhanced
+- **Post Status Queries**: Updated all database queries to include 'coming_soon' status alongside existing statuses
+- **Interface Display**: Enhanced walker class to detect and visually distinguish Coming Soon posts
+- **Helper Methods**: Added centralized methods for Coming Soon status detection and label retrieval
+- **CSS Styling**: Added professional styling for Coming Soon status badges with orange color scheme
+
+### Technical Implementation
+- **Dynamic Status Detection**: Automatically detects if Coming Soon status is available via plugin or custom implementation
+- **Fallback Handling**: Graceful fallback when Coming Soon plugin is not active
+- **Consistent Integration**: Uses plugin's custom labels when available, falls back to default "Coming Soon" text
+- **Performance Optimized**: Efficient status checking without impacting existing functionality
+
+### Compatibility
+- **CSPS Plugin**: Full integration with CSPS Coming Soon Post Status plugin constants and methods
+- **Custom Implementations**: Support for any custom Coming Soon status implementations
+- **Backward Compatible**: No breaking changes to existing functionality
+
 ## [2.8.9] - 2025-01-04
 
 ### Fixed

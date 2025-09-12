@@ -33,23 +33,181 @@
             
             /**
             * Initialisation function
-            *     
+            *
             */
             function init()
                 {
-                    
+
                     add_action( 'admin_init',                               array ( $this, 'admin_init'), 10 );
                     add_action( 'admin_menu',                               array ( $this, 'add_menu') );
-                    
+
                     add_action( 'admin_menu',                               array ( $this, 'plugin_options_menu'));
-                    
+
                     //load archive drag&drop sorting dependencies
                     add_action( 'admin_enqueue_scripts',                    array ( $this, 'archiveDragDrop'), 10 );
-                    
+
                     add_action( 'wp_ajax_update-custom-type-order',         array ( $this, 'saveAjaxOrder') );
                     add_action( 'wp_ajax_update-custom-type-order-archive', array ( $this, 'saveArchiveAjaxOrder') );
                     add_action( 'wp_ajax_pto_filter_posts_by_category',     array ( $this, 'filterPostsByCategory') );
-                
+
+                    // Add ACF fields support to interface
+                    add_filter( 'pto/interface_item_data',                  array ( $this, 'add_acf_fields_to_interface'), 10, 2 );
+
+                }
+
+            /**
+            * Get supported post statuses including Coming Soon
+            *
+            * @return array Array of supported post statuses
+            */
+            function get_supported_post_statuses()
+                {
+                    $statuses = array('publish', 'pending', 'draft', 'private', 'future', 'inherit');
+
+                    // Add coming_soon status if it exists (either from plugin or custom implementation)
+                    if ( $this->is_coming_soon_status_available() ) {
+                        $statuses[] = 'coming_soon';
+                    }
+
+                    return apply_filters( 'pto/supported_post_statuses', $statuses );
+                }
+
+            /**
+            * Check if Coming Soon post status is available
+            *
+            * @return bool True if coming_soon status is available
+            */
+            function is_coming_soon_status_available()
+                {
+                    // Check if Coming Soon plugin is active
+                    if ( class_exists( 'CSPS_Coming_Soon_Post_Status' ) ) {
+                        return true;
+                    }
+
+                    // Check if coming_soon status is registered by any other plugin
+                    $post_statuses = get_post_stati();
+                    return isset( $post_statuses['coming_soon'] );
+                }
+
+            /**
+            * Get Coming Soon label from plugin or default
+            *
+            * @return string Coming Soon label
+            */
+            function get_coming_soon_label()
+                {
+                    $default_label = __( 'Coming Soon', 'post-types-order' );
+
+                    // Try to get label from Coming Soon plugin
+                    if ( class_exists( 'CSPS_Coming_Soon_Post_Status' ) ) {
+                        $instance = CSPS_Coming_Soon_Post_Status::get_instance();
+                        if ( method_exists( $instance, 'get_coming_soon_label' ) ) {
+                            return $instance->get_coming_soon_label();
+                        }
+                    }
+
+                    return apply_filters( 'pto/coming_soon_label', $default_label );
+                }
+
+            /**
+            * Add ACF fields to the interface item data
+            *
+            * CRITICAL UI CONTEXT – DO NOT REMOVE/REFACTOR WITHOUT REVALIDATION
+            * ------------------------------------------------------------------
+            * Purpose:
+            * - Shows ACF sub‑headline fields on each draggable post row to give
+            *   editors clear context while reordering.
+            * - Output is a single inline row joined with " | " to keep rows compact.
+            *
+            * Safeguards:
+            * - Retrieval order is intentional and must remain as follows:
+            *   1) Direct get_field('<key>')
+            *   2) Group fallback get_field('post_settings')[<key>]
+            *   3) Meta fallback get_post_meta('post_settings_<key>')
+            *   Changing the order can hide data for existing content.
+            * - Labels intentionally default to the raw field names for clarity in UI.
+            * - Truncation preserves hoverable full text via title attribute if needed later.
+            *
+            * Testing REQUIRED after any change:
+            * - Verify values appear for posts using direct fields and group sub‑fields
+            * - Confirm one‑line format: "field: value | field: value | field: value"
+            * - Check no JS drag‑and‑drop regressions in the ordering screen
+            * - Review large text truncation and that ordering remains smooth
+            *
+            * Customization:
+            * - Use filter 'pto/acf_fields' to add/remove/rename labels while keeping keys.
+            *
+            * @since 2.9.2 Initial ACF display
+            * @since 2.9.3 One‑line inline format
+            * @since 2.9.4 Added safeguard documentation
+            *
+            * @param string $item_details Current item details
+            * @param object $post Post object
+            * @return string Enhanced item details with ACF fields
+            */
+            function add_acf_fields_to_interface( $item_details, $post )
+                {
+                    // If ACF isn't active, bail gracefully
+                    if ( ! function_exists( 'get_field' ) ) {
+                        return $item_details;
+                    }
+
+                    // Which fields to show: key = ACF field name, value = label (default to field name)
+                    $fields = apply_filters( 'pto/acf_fields', array(
+                        'post_sub_headline'        => 'post_sub_headline',
+                        'post_short_sub_headline'  => 'post_short_sub_headline',
+                        'post_longer_sub_headline' => 'post_longer_sub_headline',
+                    ) );
+
+                    // Attempt to load group once for fallback (common pattern: group field named 'post_settings')
+                    $group_data = get_field( 'post_settings', $post->ID );
+                    if ( ! is_array( $group_data ) ) {
+                        $group_data = array();
+                    }
+
+                    $pairs = array();
+
+                    foreach ( $fields as $key => $label ) {
+                        // SAFEGUARD: Retrieval order below is intentional.
+                        // 1) Direct field; 2) Group sub-field (post_settings); 3) Meta fallback (post_settings_<key>)
+                        // Changing this order can cause existing content to disappear from the UI.
+                        // Allow numeric array where value is the field key
+                        if ( is_int( $key ) ) {
+                            $key   = $label;
+                            $label = $key;
+                        }
+
+                        // 1) Direct field
+                        $value = get_field( $key, $post->ID );
+
+                        // 2) Fallback to group sub-field
+                        if ( ( $value === null || $value === '' ) && isset( $group_data[ $key ] ) ) {
+                            $value = $group_data[ $key ];
+                        }
+
+                        // 3) Final fallback to meta with group prefix (post_settings_<key>)
+                        if ( $value === null || $value === '' ) {
+                            $maybe = get_post_meta( $post->ID, 'post_settings_' . $key, true );
+                            if ( $maybe !== '' ) {
+                                $value = $maybe;
+                            }
+                        }
+
+                        if ( is_string( $value ) ) {
+                            $value = trim( $value );
+                        }
+
+                        if ( $value !== null && $value !== '' ) {
+                            $display_value = is_string( $value ) && strlen( $value ) > 80 ? substr( $value, 0, 77 ) . '...' : $value;
+                            $pairs[] = esc_html( $label ) . ': ' . esc_html( is_scalar( $display_value ) ? (string) $display_value : '' );
+                        }
+                    }
+
+                    if ( ! empty( $pairs ) ) {
+                        $item_details .= '<div class="pto-acf-fields"><span class="pto-acf-field">' . implode( ' | ', $pairs ) . '</span></div>';
+                    }
+
+                    return $item_details;
                 }
 
             
@@ -804,9 +962,12 @@
                     }
                     
                     //retrieve a list of all objects
-                    $mysql_query    =   $wpdb->prepare("SELECT ID FROM ". $wpdb->posts ." 
-                                                            WHERE post_type = %s AND post_status IN ('publish', 'pending', 'draft', 'private', 'future', 'inherit')
-                                                            ORDER BY menu_order, post_date DESC", $post_type);
+                    $supported_statuses = $this->get_supported_post_statuses();
+                    $status_placeholders = implode(',', array_fill(0, count($supported_statuses), '%s'));
+                    $mysql_query    =   $wpdb->prepare("SELECT ID FROM ". $wpdb->posts ."
+                                                            WHERE post_type = %s AND post_status IN ($status_placeholders)
+                                                            ORDER BY menu_order, post_date DESC",
+                                                            array_merge(array($post_type), $supported_statuses));
                     $results        =   $wpdb->get_results($mysql_query);
                     
                     if (!is_array($results)    ||  count($results)    <   1)
@@ -971,7 +1132,7 @@
                         'post_type' => $post_type,
                         'posts_per_page' => $posts_per_page,
                         'paged' => $paged,
-                        'post_status' => 'any',
+                        'post_status' => $this->get_supported_post_statuses(),
                         'orderby' => array(
                             'menu_order' => 'ASC',
                             'post_date' => 'DESC'

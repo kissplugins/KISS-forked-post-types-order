@@ -36,6 +36,63 @@
     outline-offset: 1px;
 }
 
+/* Coming Soon Status Badge Styling */
+#order-objects #sortable li .pto-status-badge {
+    display: inline-block;
+    font-size: 11px;
+    font-weight: bold;
+    padding: 2px 6px;
+    margin-left: 8px;
+    border-radius: 3px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+#order-objects #sortable li .pto-coming-soon {
+    background-color: #ff9500;
+    color: #fff;
+    border: 1px solid #e68900;
+}
+
+/* ACF Fields Styling */
+#order-objects #sortable li .pto-acf-fields {
+    display: block;
+    margin-top: 5px;
+    padding: 5px 8px;
+    background-color: #f8f9fa;
+    border: 1px solid #e1e5e9;
+    border-radius: 3px;
+    font-size: 11px;
+    line-height: 1.4;
+}
+
+#order-objects #sortable li .pto-acf-field {
+    display: block;
+    color: #555;
+    margin-bottom: 2px;
+}
+
+#order-objects #sortable li .pto-acf-field:last-child {
+    margin-bottom: 0;
+}
+
+#order-objects #sortable li .pto-acf-field strong {
+    color: #2c3e50;
+    font-weight: 600;
+}
+
+/* Item Content Layout */
+#order-objects #sortable li .pto-item-content {
+    display: block;
+    width: 100%;
+}
+
+#order-objects #sortable li .pto-item-title {
+    display: block;
+    font-weight: bold;
+    margin-bottom: 3px;
+}
+
 /* Self Tests Button Styling */
 .pto-self-tests-btn {
     font-size: 13px !important;
