@@ -5,7 +5,7 @@
 * Description: Category filter addeed. Posts Order and Post Types Objects Order using a Drag and Drop Sortable javascript capability
 * Author: Nsp Code Original Authors - Nsp Code, KISS Code
 * Author URI: https://kissplugins.com
-* Version: 2.9.11
+* Version: 2.9.12
 * Text Domain: post-types-order
 * Domain Path: /languages/
 */
@@ -13,7 +13,20 @@
     define('CPTPATH',   plugin_dir_path(__FILE__));
     define('CPTURL',    plugins_url('', __FILE__));
 
-    define('PTO_VERSION',          '2.9.11');
+    define('PTO_VERSION',          '2.9.12');
+    
+    // Include the Plugin Update Checker
+	require_once CPTPATH . '/include/lib/plugin-update-checker/plugin-update-checker.php';
+	use YahnisElsts\PluginUpdateChecker\v5\PucFactory;
+
+	$update_checker = PucFactory::buildUpdateChecker(
+	    'https://github.com/kissplugins/KISS-forked-post-types-order',
+	    __FILE__,
+	    'post-types-order'
+	);
+	// Optional: Set the branch that contains the stable release.
+	$update_checker->setBranch( 'main' );
+
 
     include_once(CPTPATH . '/include/class.cpto.php');
     include_once(CPTPATH . '/include/class.functions.php');
